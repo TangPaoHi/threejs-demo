@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>three.js css3d - periodic table</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			a {
+				color: #8ff;
+			}
+
+			#menu {
+				position: absolute;
+				bottom: 20px;
+				width: 100%;
+				display:flex;
+				justify-content: center;
+				align-items: center;
+				gap:20px;
+			}
+
+			.element {
+    			position: relative;
+    			width: 120px;
+    			height: 160px;
+    			box-shadow: 0 0 12px rgba(0,255,255,0.5);
+    			border: 1px solid rgba(127,255,255,0.25);
+    			font-family: Helvetica, sans-serif;
+    			cursor: default;
+    			text-align: center;
+			}
+
+			
+
+			.element .number {
+   				 position: absolute;
+   				top: 8px;
+    			left: 10px;
+    			font-size: 12px;
+    			color: rgba(127,255,255,0.85);
+			}
+				
+
+			.element .photo {
+  				position: absolute;
+ 			    top: 32px;
+  				left: 50%;
+  				transform: translateX(-50%);
+  				width: 64px;
+  				height: 64px;
+  				border-radius: 10px;
+  				object-fit: cover;
+  				border: 2px solid rgba(127,255,255,0.35); /* 会在 JS 里改颜色 */
+  				background: rgba(0,0,0,0.25);
+			}
+
+			.element .top {
+  				position: absolute;
+  				top: 8px;
+  				left: 10px;
+  				right: 10px;
+  				display: flex;
+  				justify-content: space-between;
+  				font-size: 11px;
+  				color: rgba(127,255,255,0.9);
+			}		
+
+            .element .name {
+  				position: absolute;
+  				top: 104px;
+  				left: 8px;
+  				right: 8px;
+  				font-size: 13px;
+  				font-weight: 800;
+  				line-height: 1.1;
+  				color: rgba(255,255,255,0.9);
+  				text-shadow: 0 0 8px rgba(0,255,255,0.6);
+  				white-space: nowrap;
+  				overflow: hidden;
+  				text-overflow: ellipsis;
+			}
+			
+			.element .interest {
+  				position: absolute;
+  				bottom: 12px;
+  				left: 8px;
+  				right: 8px;
+  				font-size: 11px;
+  				color: rgba(127,255,255,0.85);
+  				white-space: nowrap;
+  				overflow: hidden;
+  				text-overflow: ellipsis;
+			}
+				
+
+			button {
+				color: rgba(127,255,255,0.75);
+				background: transparent;
+				outline: 1px solid rgba(127,255,255,0.75);
+				border: 0px;
+				padding: 5px 10px;
+				cursor: pointer;
+			}
+
+			button:hover {
+				background-color: rgba(0,255,255,0.5);
+			}
+
+			button:active {
+				color: #000000;
+				background-color: rgba(0,255,255,0.75);
+			}
+
+			#networth-legend {
+    			display: flex;
+    			align-items: center;
+    			font-family: Helvetica, sans-serif;
+   			 	font-size: 12px;
+    			color: #fff;
+    			gap: 6px;
+			}
+            
+			
+			
+			
+			#networth-legend .bar {
+  				width: 140px;
+  				height: 12px;
+  				background: linear-gradient(to right, #f00, #ff0, #0f0);
+  				border-radius: 6px;
+				}
+
+			#networth-legend .label {
+  				font-size: 12px;
+  				color: rgba(127,255,255,0.9);
+				}
+
+		</style>
+	</head>
+	<body>
+
+		<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+		<div id="login-panel" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;z-index:9999;">
+  		<div id="g_id_onload"
+       			data-client_id="1083192221722-kbpf4s6h8ndgmm0dfh6bjd5oce4esdb0.apps.googleusercontent.com"
+       			data-callback="onGoogleLogin">
+  		</div>
+ 		 <div class="g_id_signin" data-type="standard"></div>
+		</div>
+
+
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> css3d - periodic table.</div>
+		<div id="container"></div>
+		<div id="menu">
+			<button id="table">TABLE</button>
+			<button id="sphere">SPHERE</button>
+			<button id="helix">HELIX</button>
+			<button id="grid">GRID</button>
+
+			<div id="networth-legend">
+				<span style="color:white; margin-right:5px;">Low</span>
+				<span style="background: linear-gradient(to right, #ef3022, #FDCA35, #3A9F48); width: 120px; display: inline-block; height: 20px; vertical-align: middle;"></span>
+				<span style="color:white; margin-left:5px;">High</span>
+			</div>
+		</div>
+
+		
+		  
+
+		<script type="importmap">
+			{
+			  "imports": {
+				"three": "https://unpkg.com/three/build/three.module.js",
+				"three/addons/": "https://unpkg.com/three/examples/jsm/"
+			  }
+			}
+			</script>
+			
+
+		
+		<script>
+			function onGoogleLogin(response){
+			  localStorage.setItem("gis_token", response.credential);
+			  document.getElementById("login-panel").style.display = "none";
+			  window.startApp && window.startApp(); 
+			}
+		  
+			window.addEventListener("load", () => {
+			  if(localStorage.getItem("gis_token")){
+				document.getElementById("login-panel").style.display = "none";
+				window.startApp && window.startApp();
+			  }
+			});
+		  </script>
+		  
+
+		<script type="module">
+			
+
+
+			import * as THREE from 'three';
+
+			import TWEEN from 'three/addons/libs/tween.module.js';
+			import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+			import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+			
+
+			let camera, scene, renderer;
+			let controls;
+
+			const objects = [];
+			const targets = { table: [], sphere: [], helix: [], grid: [] };
+
+			
+			let sheetData = [];
+
+			const SHEET_CSV_URL =
+  			"https://docs.google.com/spreadsheets/d/1OYOOehQnrSg514xh8tz-se7yGG6b4BTnKRyqNzm76NQ/gviz/tq?tqx=out:csv&gid=1490001495";
+
+			function parseCSV(text) {
+  			const rows = [];
+  			let row = [];
+  			let cur = "";
+  			let inQuotes = false;
+
+  			for (let i = 0; i < text.length; i++) {
+    			const c = text[i];
+    			const n = text[i + 1];
+
+    			if (c === '"' && inQuotes && n === '"') { cur += '"'; i++; continue; }
+    			if (c === '"') { inQuotes = !inQuotes; continue; }
+
+    			if (c === "," && !inQuotes) { row.push(cur); cur = ""; continue; }
+
+    			if ((c === "\n" || c === "\r") && !inQuotes) {
+      			if (c === "\r" && n === "\n") i++;
+      			row.push(cur); cur = "";
+      			if (row.length > 1 || row[0] !== "") rows.push(row);
+      			row = [];
+      			continue;
+   			 }
+
+    			cur += c;
+  }
+
+  				row.push(cur);
+  				if (row.length > 1 || row[0] !== "") rows.push(row);
+
+  				const headers = rows.shift().map(h => h.trim());
+ 				return rows.map(r => {
+   			     const obj = {};
+    			headers.forEach((h, idx) => obj[h] = (r[idx] ?? "").trim());
+    			return obj;
+  				});
+}
+
+				async function loadSheetData() {
+ 				const res = await fetch(SHEET_CSV_URL);
+  				const text = await res.text();
+
+  
+  				if (text.trim().startsWith("<!DOCTYPE")) {
+    			throw new Error("Sheet not public. Set: Anyone with the link → Viewer");
+ 				 }
+
+  				sheetData = parseCSV(text);
+  				console.log("✅ sheetData length:", sheetData.length, sheetData[0]);
+
+  				init();
+  				animate();
+}
+
+			window.startApp = function () {
+  			loadSheetData().catch(err => console.error("❌", err));
+			};
+
+			
+			
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.z = 3000;
+
+				scene = new THREE.Scene();
+
+				// table
+
+				
+			for (let i = 0; i < sheetData.length; i++) {
+  				const row = sheetData[i];
+  			    if (!row) continue;
+
+				function parseNetWorth(v) {
+  				const s = String(v ?? "").trim().toUpperCase();
+
+  
+  				const cleaned = s.replace(/[^0-9.KMB]/g, "");
+  				if (!cleaned) return 0;
+
+  				let mult = 1;
+  				if (cleaned.endsWith("K")) mult = 1e3;
+  				else if (cleaned.endsWith("M")) mult = 1e6;
+  				else if (cleaned.endsWith("B")) mult = 1e9;
+
+  				const num = parseFloat(cleaned);
+  				return Number.isFinite(num) ? num * mult : 0;		
+				}
+
+
+				const rawNet = row.NetWorth ?? row["Net Worth"] ?? row["NetWorth "] ?? row["Networth"];
+				const net = parseNetWorth(rawNet);
+
+
+
+
+			let border, bg, glow;
+
+			if (net > 200000) {
+  			border = "#3A9F48";
+  			bg     = "rgba(58,159,72,0.55)";
+  			glow   = "rgba(58,159,72,0.65)";
+			} else if (net > 100000 && net <= 200000) {
+  			border = "#FDCA35";
+  			bg     = "rgba(253,202,53,0.55)";
+  			glow   = "rgba(253,202,53,0.65)";
+			} else {
+  			border = "#EF3022";
+  			bg     = "rgba(239,48,34,0.55)";
+  			glow   = "rgba(239,48,34,0.65)";
+			}
+
+
+
+  			const element = document.createElement("div");
+  			element.className = "element";
+			 element.style.setProperty("background", bg, "important");
+			element.style.setProperty("border", `1px solid ${border}`, "important");
+			element.style.setProperty("box-shadow", `0 0 18px ${glow}`, "important");
+
+
+			const top = document.createElement("div");
+  			top.className = "top";
+
+  			const country = document.createElement("div");
+  			country.className = "country";
+  			country.textContent = row.Country ?? "";
+
+  			const age = document.createElement("div");
+  			age.className = "age";
+  			age.textContent = row.Age ?? "";
+
+  			top.appendChild(country);
+  			top.appendChild(age);
+
+ 			 // photo
+  			const img = document.createElement("img");
+  			img.className = "photo";
+  			img.src = row.Photo ?? "";         // 你的 sheet 需要 Photo 列是图片 URL
+  			img.alt = row.Name ?? "";
+  			img.style.borderColor = border;     // 照片外框颜色跟 net worth
+
+  			// name
+  			const name = document.createElement("div");
+  			name.className = "name";
+  			name.textContent = row.Name ?? "";
+
+  			// interest
+  			const interest = document.createElement("div");
+  			interest.className = "interest";
+  			interest.textContent = row.Interest ?? "";
+
+  			element.appendChild(top);
+  			element.appendChild(img);
+  			element.appendChild(name);
+  			element.appendChild(interest);
+
+
+  			const objectCSS = new CSS3DObject(element);
+  			objectCSS.position.x = Math.random() * 4000 - 2000;
+  			objectCSS.position.y = Math.random() * 4000 - 2000;
+  			objectCSS.position.z = Math.random() * 4000 - 2000;
+  			scene.add(objectCSS);
+  			objects.push(objectCSS);
+
+  
+  			const object = new THREE.Object3D();
+  			const col = i % 20;
+  			const rowIdx = Math.floor(i / 20);
+  			object.position.x = (col * 140) - 1330;
+  			object.position.y = -(rowIdx * 180) + 990;
+  			targets.table.push(object);
+}
+
+				// sphere
+
+				const vector = new THREE.Vector3();
+
+				for ( let i = 0, l = objects.length; i < l; i ++ ) {
+
+					const phi = Math.acos( - 1 + ( 2 * i ) / l );
+					const theta = Math.sqrt( l * Math.PI ) * phi;
+
+					const object = new THREE.Object3D();
+
+					object.position.setFromSphericalCoords( 800, phi, theta );
+
+					vector.copy( object.position ).multiplyScalar( 2 );
+
+					object.lookAt( vector );
+
+					targets.sphere.push( object );
+
+				}
+
+				// DOUBLE HELIX
+				const theta = new THREE.Vector3();
+
+				const radius = 900;      // 螺旋半径
+				const pitch  = 12;       // 每个点的上下间距（越大越拉开）
+				const step   = 0.35;     // 角度推进速度（越大越扭）
+
+			for (let i = 0, l = objects.length; i < l; i++) {
+
+  				const strand = i % 2;                  // 0 或 1
+  				const pairIndex = Math.floor(i / 2);   // 每两张卡共用同一个 y 层
+
+  				const theta = pairIndex * step + (strand * Math.PI);   // 两条链相差 180°
+  				const y = -(pairIndex * pitch) + 450;
+
+  				const object = new THREE.Object3D();
+  				object.position.setFromCylindricalCoords(radius, theta, y);
+
+  				vector.set(object.position.x * 2, object.position.y, object.position.z * 2);
+  				object.lookAt(vector);
+
+  				targets.helix.push(object);
+}
+
+
+				// grid
+
+				
+				const W = 5;
+				const H = 4;
+				const D = 10;
+
+				const xGap = 220;
+				const yGap = 220;
+				const zGap = 350;
+
+
+				const xOffset = -((W - 1) * xGap) / 2;
+				const yOffset =  ((H - 1) * yGap) / 2;
+				const zOffset = -((D - 1) * zGap) / 2;
+
+			for (let i = 0; i < objects.length; i++) {
+
+  				const object = new THREE.Object3D();
+
+  				const layerSize = W * H;                 
+  				const layer = Math.floor(i / layerSize); 
+
+  				const idxInLayer = i % layerSize;        
+  				const col = idxInLayer % W;            
+  				const row = Math.floor(idxInLayer / W); 
+
+  				object.position.x = xOffset + col * xGap;
+  				object.position.y = yOffset - row * yGap;
+  				object.position.z = zOffset + layer * zGap;
+
+  				targets.grid.push(object);
+}
+
+				//
+
+				renderer = new CSS3DRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.getElementById( 'container' ).appendChild( renderer.domElement );
+
+				//
+
+				controls = new TrackballControls( camera, renderer.domElement );
+				controls.minDistance = 500;
+				controls.maxDistance = 6000;
+				controls.addEventListener( 'change', render );
+
+				const buttonTable = document.getElementById( 'table' );
+				buttonTable.addEventListener( 'click', function () {
+
+					transform( targets.table, 2000 );
+
+				} );
+
+				const buttonSphere = document.getElementById( 'sphere' );
+				buttonSphere.addEventListener( 'click', function () {
+
+					transform( targets.sphere, 2000 );
+
+				} );
+
+				const buttonHelix = document.getElementById( 'helix' );
+				buttonHelix.addEventListener( 'click', function () {
+
+					transform( targets.helix, 2000 );
+
+				} );
+
+				const buttonGrid = document.getElementById( 'grid' );
+				buttonGrid.addEventListener( 'click', function () {
+
+					transform( targets.grid, 2000 );
+
+				} );
+
+				transform( targets.table, 2000 );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			function transform( targets, duration ) {
+
+				TWEEN.removeAll();
+
+				for ( let i = 0; i < objects.length; i ++ ) {
+
+					const object = objects[ i ];
+					const target = targets[ i ];
+
+					new TWEEN.Tween( object.position )
+						.to( { x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration )
+						.easing( TWEEN.Easing.Exponential.InOut )
+						.start();
+
+					new TWEEN.Tween( object.rotation )
+						.to( { x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration )
+						.easing( TWEEN.Easing.Exponential.InOut )
+						.start();
+
+				}
+
+				new TWEEN.Tween( this )
+					.to( {}, duration * 2 )
+					.onUpdate( render )
+					.start();
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				TWEEN.update();
+
+				controls.update();
+
+			}
+
+			function render() {
+
+				renderer.render( scene, camera );
+
+			}
+
+			window.addEventListener('DOMContentLoaded', () => {
+  
+});
+
+
+		</script>
+
+
+	</body>
+</html>
