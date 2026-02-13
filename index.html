@@ -158,6 +158,8 @@
 			<button id="sphere">SPHERE</button>
 			<button id="helix">HELIX</button>
 			<button id="grid">GRID</button>
+			<button id="tetra">TETRA</button>
+
 
 			<div id="networth-legend">
 				<span style="color:white; margin-right:5px;">Low</span>
@@ -212,7 +214,7 @@
 			let controls;
 
 			const objects = [];
-			const targets = { table: [], sphere: [], helix: [], grid: [] };
+			const targets = { table: [], sphere: [], helix: [], grid: [],tetra: [] };
 
 			
 			let sheetData = [];
@@ -475,6 +477,80 @@
   				targets.grid.push(object);
 }
 
+				// tetra 
+				const tetraScale = 900;
+
+
+				const V = [
+  					new THREE.Vector3( 1,  1,  1),
+  					new THREE.Vector3( 1, -1, -1),
+  					new THREE.Vector3(-1,  1, -1),
+  					new THREE.Vector3(-1, -1,  1),
+				].map(v => v.normalize().multiplyScalar(tetraScale));
+
+
+				const faces = [
+  					[0, 1, 2],
+  					[0, 3, 1],
+  					[0, 2, 3],
+  					[1, 3, 2],
+				];
+
+				const perFace = Math.ceil(objects.length / 4);
+
+
+				function triRC(k) {
+  					const row = Math.floor((Math.sqrt(8 * k + 1) - 1) / 2);
+  					const start = (row * (row + 1)) / 2;
+  					const col = k - start;
+  					return { row, col };
+				}
+
+
+				const n = Math.ceil((Math.sqrt(8 * perFace + 1) - 1) / 2);
+
+				for (let i = 0; i < objects.length; i++) {
+  					const faceIndex = i % 4;
+  					const k = Math.floor(i / 4); 
+
+  					const [ia, ib, ic] = faces[faceIndex];
+  					const A = V[ia], B = V[ib], C = V[ic];
+
+  					const { row, col } = triRC(k);
+  					const r = Math.min(row, n - 1);
+
+  
+  					let u = 0, v = 0;
+  					if (r > 0) {
+    					const c = Math.min(col, r);
+    					v = r / (n - 1);        
+    					u = (c / r) * (1 - v);  
+  					}
+  					const w = 1 - u - v;
+
+  					const pos = new THREE.Vector3()
+    				.addScaledVector(A, w)
+    				.addScaledVector(B, u)
+    				.addScaledVector(C, v);
+
+  
+  					const normal = new THREE.Vector3()
+    					.crossVectors(
+      					new THREE.Vector3().subVectors(B, A),
+      					new THREE.Vector3().subVectors(C, A)
+   					 )
+    				.normalize();
+
+  					pos.addScaledVector(normal, 60);
+
+  					const obj = new THREE.Object3D();
+  					obj.position.copy(pos);
+  					obj.lookAt(pos.clone().multiplyScalar(2));
+
+  					targets.tetra.push(obj);
+}
+
+
 				//
 
 				renderer = new CSS3DRenderer();
@@ -515,6 +591,14 @@
 					transform( targets.grid, 2000 );
 
 				} );
+
+				const buttonTetra = document.getElementById('tetra');
+				buttonTetra.addEventListener('click', function () {
+  			
+					transform(targets.tetra, 2000);
+					
+				});
+
 
 				transform( targets.table, 2000 );
 
