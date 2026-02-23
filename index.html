@@ -418,28 +418,44 @@
 
 				}
 
-				// DOUBLE HELIX
-				const theta = new THREE.Vector3();
+				// ==========================================
+// DOUBLE HELIX (自适应完美双螺旋)
+// ==========================================
+const vectorHelix = new THREE.Vector3();
+const radius = 600; // 螺旋半径 (如果你觉得太宽可以调小到 500)
 
-				const radius = 900;      // 螺旋半径
-				const pitch  = 12;       // 每个点的上下间距（越大越拉开）
-				const step   = 0.35;     // 角度推进速度（越大越扭）
+// 1. 动态计算：确保无论有多少卡片，螺旋一定会转满 2.5 圈
+const turns = 2.5;  
+const totalRotation = turns * 2 * Math.PI; // 总旋转弧度
+const countPerStrand = Math.ceil(objects.length / 2); // 每条链的卡片数量
+const angleStep = totalRotation / countPerStrand; // 动态计算每张卡的旋转角度
 
-			for (let i = 0, l = objects.length; i < l; i++) {
+// 2. 动态高度：强制整个双螺旋的总高度固定 (比如 1200)，避免卡片挤在一起
+const totalHeight = 1200; 
+const heightStep = totalHeight / countPerStrand; 
+const startY = totalHeight / 2;
 
-  				const strand = i % 2;                  // 0 或 1
-  				const pairIndex = Math.floor(i / 2);   // 每两张卡共用同一个 y 层
+for (let i = 0, l = objects.length; i < l; i++) {
+    const object = new THREE.Object3D();
+    
+    // 区分 链A(0) 和 链B(1)
+    const strand = i % 2; 
+    const indexInStrand = Math.floor(i / 2);
 
-  				const theta = pairIndex * step + (strand * Math.PI);   // 两条链相差 180°
-  				const y = -(pairIndex * pitch) + 450;
+    // 链B的起始角度比链A多 180度 (Math.PI)，形成完美相对的双链
+    const theta = indexInStrand * angleStep + (strand * Math.PI);
+    const y = startY - (indexInStrand * heightStep);
 
-  				const object = new THREE.Object3D();
-  				object.position.setFromCylindricalCoords(radius, theta, y);
+    // 用原生三角函数计算 3D 坐标 (更直观，100%兼容)
+    const x = radius * Math.cos(theta);
+    const z = radius * Math.sin(theta);
+    object.position.set(x, y, z);
 
-  				vector.set(object.position.x * 2, object.position.y, object.position.z * 2);
-  				object.lookAt(vector);
+    // 让卡片水平朝外看向外侧
+    vectorHelix.set(object.position.x * 2, object.position.y, object.position.z * 2);
+    object.lookAt(vectorHelix);
 
-  				targets.helix.push(object);
+    targets.helix.push(object);
 }
 
 
@@ -477,80 +493,61 @@
   				targets.grid.push(object);
 }
 
-				// tetra 
-				const tetraScale = 900;
+				// TETRA (正四面体)
+const tetraScale = 1000;
+// 定义正四面体的 4 个顶点
+const V = [
+    new THREE.Vector3( 1,  1,  1),
+    new THREE.Vector3( 1, -1, -1),
+    new THREE.Vector3(-1,  1, -1),
+    new THREE.Vector3(-1, -1,  1),
+].map(v => v.normalize().multiplyScalar(tetraScale));
 
+// 四个面的顶点组合
+const faces = [
+    [0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2]
+];
 
-				const V = [
-  					new THREE.Vector3( 1,  1,  1),
-  					new THREE.Vector3( 1, -1, -1),
-  					new THREE.Vector3(-1,  1, -1),
-  					new THREE.Vector3(-1, -1,  1),
-				].map(v => v.normalize().multiplyScalar(tetraScale));
+const perFace = Math.ceil(objects.length / 4);
+// 计算每一面三角形排布所需的行数
+const rows = Math.ceil((Math.sqrt(8 * perFace + 1) - 1) / 2);
 
+for (let i = 0; i < objects.length; i++) {
+    const faceIdx = i % 4;
+    const k = Math.floor(i / 4); 
 
-				const faces = [
-  					[0, 1, 2],
-  					[0, 3, 1],
-  					[0, 2, 3],
-  					[1, 3, 2],
-				];
+    const [a, b, c] = faces[faceIdx];
+    const A = V[a], B = V[b], C = V[c];
 
-				const perFace = Math.ceil(objects.length / 4);
+    // 计算三角形内的行列位置
+    const row = Math.floor((Math.sqrt(8 * k + 1) - 1) / 2);
+    const col = k - (row * (row + 1)) / 2;
 
+    // 重心坐标归一化
+    const denom = Math.max(1, rows);
+    const u = (rows - row) / denom;
+    const v = (row - col) / denom;
+    const w = col / denom;
 
-				function triRC(k) {
-  					const row = Math.floor((Math.sqrt(8 * k + 1) - 1) / 2);
-  					const start = (row * (row + 1)) / 2;
-  					const col = k - start;
-  					return { row, col };
-				}
+    const pos = new THREE.Vector3()
+        .addScaledVector(A, u)
+        .addScaledVector(B, v)
+        .addScaledVector(C, w);
 
+    // 计算该面的法线方向，让卡片平贴在面上
+    const normal = new THREE.Vector3().crossVectors(
+        new THREE.Vector3().subVectors(B, A),
+        new THREE.Vector3().subVectors(C, A)
+    ).normalize();
 
-				const n = Math.ceil((Math.sqrt(8 * perFace + 1) - 1) / 2);
+    const obj = new THREE.Object3D();
+    obj.position.copy(pos);
+    
+    // 让卡片看向面法线的方向（即垂直于平面朝外）
+    obj.lookAt(pos.clone().add(normal));
 
-				for (let i = 0; i < objects.length; i++) {
-  					const faceIndex = i % 4;
-  					const k = Math.floor(i / 4); 
-
-  					const [ia, ib, ic] = faces[faceIndex];
-  					const A = V[ia], B = V[ib], C = V[ic];
-
-  					const { row, col } = triRC(k);
-  					const r = Math.min(row, n - 1);
-
-  
-  					let u = 0, v = 0;
-  					if (r > 0) {
-    					const c = Math.min(col, r);
-    					v = r / (n - 1);        
-    					u = (c / r) * (1 - v);  
-  					}
-  					const w = 1 - u - v;
-
-  					const pos = new THREE.Vector3()
-    				.addScaledVector(A, w)
-    				.addScaledVector(B, u)
-    				.addScaledVector(C, v);
-
-  
-  					const normal = new THREE.Vector3()
-    					.crossVectors(
-      					new THREE.Vector3().subVectors(B, A),
-      					new THREE.Vector3().subVectors(C, A)
-   					 )
-    				.normalize();
-
-  					pos.addScaledVector(normal, 60);
-
-  					const obj = new THREE.Object3D();
-  					obj.position.copy(pos);
-  					obj.lookAt(pos.clone().multiplyScalar(2));
-
-  					targets.tetra.push(obj);
+    targets.tetra.push(obj);
 }
-
-
 				//
 
 				renderer = new CSS3DRenderer();
@@ -596,7 +593,7 @@
 				buttonTetra.addEventListener('click', function () {
   			
 					transform(targets.tetra, 2000);
-					
+
 				});
 
 
